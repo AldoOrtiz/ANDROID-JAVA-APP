@@ -6,54 +6,43 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.StrictMode;
-import android.text.format.DateFormat;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import org.apache.commons.net.ntp.NTPUDPClient;
 import org.apache.commons.net.ntp.TimeInfo;
 
-import java.io.IOException;
 import java.net.InetAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.Locale;
 import java.util.Random;
-import java.util.TimeZone;
-import java.util.function.LongFunction;
 
 public class MainActivity extends AppCompatActivity {
 
-    Button button;
-    TextView timeTv;
-    String time = "Loading...";
-    private Thread myThread = null;
-    public static final String[] TIME_SERVER = {"2.android.pool.ntp.org", "time.nist.gov", "pool.ntp.org"};
+    Button button; // button to get time
+    TextView timeTv; // text view to show time
+    String time = "Loading...";  // time string
+    private Thread myThread = null; // thread to get time
+    public static final String[] TIME_SERVER = {"2.android.pool.ntp.org", "time.nist.gov", "pool.ntp.org"}; // time server
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        super.onCreate(savedInstanceState); // call super class
+        setContentView(R.layout.activity_main); // set layout
 
-        button = findViewById(R.id.button);
-        timeTv = findViewById(R.id.time_tv);
+        button = findViewById(R.id.button);// get button
+        timeTv = findViewById(R.id.time_tv);// get text view
 
-        Runnable runnable = new CountDownRunner();
-        myThread = new Thread(runnable);
-        myThread.start();
+        Runnable runnable = new CountDownRunner();// create runnable
+        myThread = new Thread(runnable);// create thread
+        myThread.start();// start thread
 
 
-        button.setOnClickListener(view -> {
-            if (isNetworkAvailable()) {
-                button.setText("Online");
+        button.setOnClickListener(view -> { // set on click listener
+            if (isNetworkAvailable()) { // check if network is available
+                button.setText("Online"); // set button text
             } else {
                 button.setText("No internet");
             }
@@ -63,26 +52,26 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void startGettingTime() {
-        runOnUiThread(() -> {
-            try {
-                SimpleDateFormat sdf = new SimpleDateFormat("hh-mm-ss a");
-                time = sdf.format(getNTPTime());
-                timeTv.setText(time);
-            } catch (Exception ignored) {
+    public void startGettingTime() { // method to get time
+        runOnUiThread(() -> { // run on ui thread
+            try { //    try catch block
+                SimpleDateFormat sdf = new SimpleDateFormat("hh-mm-ss a"); // create simple date format
+                time = sdf.format(getNTPTime()); // get time from ntp server
+                timeTv.setText(time);// set text view text
+            } catch (Exception ignored) { // catch exception
             }
         });
     }
 
-    class CountDownRunner implements Runnable {
+    class CountDownRunner implements Runnable { // runnable class
         @Override
-        public void run() {
-            while (!Thread.currentThread().isInterrupted()) {
+        public void run() { // run method
+            while (!Thread.currentThread().isInterrupted()) { // while thread is not interrupted
                 try {
-                    startGettingTime();
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                    startGettingTime(); // get time
+                    Thread.sleep(1000); //  sleep for 1 second
+                } catch (InterruptedException e) { // catch exception
+                    Thread.currentThread().interrupt(); // interrupt thread
                 } catch (Exception e) {
                 }
             }
@@ -90,46 +79,46 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private boolean isNetworkAvailable() {
-        ConnectivityManager connectivityManager
-                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
-        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    private boolean isNetworkAvailable() { // method to check if network is available
+        ConnectivityManager connectivityManager // create connectivity manager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE); // get connectivity manager
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo(); // get active network info
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected(); // return true if network is available
     }
 
-    private Date getNTPTime() {
-        if (isNetworkAvailable()) {
-            button.setText("Online");
-            Log.e("isOnline", "true");
-            NTPUDPClient timeClient = new NTPUDPClient();
-            timeClient.setDefaultTimeout(2000);
-            TimeInfo timeInfo;
+    private Date getNTPTime() { // method to get time from ntp server
+        if (isNetworkAvailable()) { // check if network is available
+            button.setText("Online"); // set button text
+            Log.e("isOnline", "true"); //   log
+            NTPUDPClient timeClient = new NTPUDPClient(); // create ntp client
+            timeClient.setDefaultTimeout(2000); // set default timeout
+            TimeInfo timeInfo; // create time info
             try {
-                timeClient.open();
-                InetAddress inetAddress = InetAddress.getByName(getNTPServer());
-                timeInfo = timeClient.getTime(inetAddress);
-                long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
-                Date time = new Date(returnTime);
-                timeClient.close();
-                return time;
+                timeClient.open(); // open client
+                InetAddress inetAddress = InetAddress.getByName(getNTPServer()); // get inet address
+                timeInfo = timeClient.getTime(inetAddress); // get time info
+                long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime(); // get time
+                Date time = new Date(returnTime); // create date
+                timeClient.close(); // close client
+                return time;// return time
             } catch (Exception e) {
-                e.printStackTrace();
-                return new Date();
+                e.printStackTrace(); // print stack trace
+                return new Date(); // return current time
             }
         } else {
             button.setText("Offline");
             Log.e("isOnline", "false");
-            return new Date(System.currentTimeMillis());
+            return new Date(System.currentTimeMillis()); // return current time
         }
     }
 
-    public static String getNTPServer() {
-        int max = TIME_SERVER.length;
+    public static String getNTPServer() { // method to get ntp server
+        int max = TIME_SERVER.length; // get max length
 
-        Random r = new Random();
-        int i1 = r.nextInt(max - 1);
+        Random r = new Random(); // create random
+        int i1 = r.nextInt(max - 1); // get random number
 
-        return TIME_SERVER[i1];
+        return TIME_SERVER[i1]; // return random server
     }
 
 }
